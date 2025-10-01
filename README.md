@@ -1,3 +1,21 @@
-# ProjectMachineLearning
-Project Machine Learning from INSA Lyon University  
-We are gona use the Pytorch 
+# Machine Learning and DAta Analytics - INSA-Lyon 
+
+## Project Machine Learning
+
+- face recognition neural network
+ 
+### Objective
+
+-
+-
+-
+
+### Pytorch
+
+### Participants:
+
+- Ana
+- Julia
+- Leonardo
+- Maria Isabel
+- Nicolas
