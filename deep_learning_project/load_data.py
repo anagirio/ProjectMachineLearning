@@ -56,6 +56,20 @@ def evaluate(model, loader, criterion, device):
     model.train()
     return avg_loss
 
+def build_dataloaders(batch_size=batch_size, num_workers=None):
+    """Return (train_loader, valid_loader, test_loader).
+
+    This function is safe to import from other modules (it doesn't run
+    training) and can be used by `test.py` to obtain the test loader.
+    """
+    if num_workers is None:
+        num_workers = 0 if sys.platform.startswith('win') else 1
+
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, sampler=train_sampler, num_workers=num_workers)
+    valid_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, sampler=valid_sampler, num_workers=num_workers)
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    return train_loader, valid_loader, test_loader
+
 
 def main():
     # aqui é para passagem de argumento, maioria já tem default ai n precisa passar nd, botei 2 epocas pq tinha visto num dos tutoriais q uso isso, mas da pra brincar
@@ -130,16 +144,3 @@ if __name__ == '__main__':
     main()
 
 
-def build_dataloaders(batch_size=batch_size, num_workers=None):
-    """Return (train_loader, valid_loader, test_loader).
-
-    This function is safe to import from other modules (it doesn't run
-    training) and can be used by `test.py` to obtain the test loader.
-    """
-    if num_workers is None:
-        num_workers = 0 if sys.platform.startswith('win') else 1
-
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, sampler=train_sampler, num_workers=num_workers)
-    valid_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, sampler=valid_sampler, num_workers=num_workers)
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    return train_loader, valid_loader, test_loader
