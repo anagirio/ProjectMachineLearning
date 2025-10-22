@@ -83,7 +83,8 @@ def main():
     args = parser.parse_args()
 
     # aq frescurinha pra roda com gpu pode ate apagar
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
 
     # Create DataLoaders inside main so worker spawning happens safely
     train_loader, valid_loader, test_loader = build_dataloaders(batch_size=args.batch_size, num_workers=args.num_workers)
