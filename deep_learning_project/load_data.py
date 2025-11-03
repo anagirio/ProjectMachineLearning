@@ -1,3 +1,4 @@
+import fix_images
 import numpy as np
 import torch
 import torchvision
@@ -11,18 +12,35 @@ from torch.utils.data.sampler import SubsetRandomSampler
 import multiprocessing
 import sys
 from net import Net
-import fix_images 
 
 train_dir = './train_images'
 test_dir = './test_images'
 
-transform = transforms.Compose(
-    [transforms.Grayscale(), 
-     transforms.ToTensor(), 
-     transforms.Normalize(mean=(0,),std=(1,))])
+# TRANSFORMAÇÕES COM DATA AUGMENTATION PARA TREINO
+# Essas transformações aumentam artificialmente a variedade dos dados
+transform_train = transforms.Compose([
+    transforms.Grayscale(),
+    transforms.RandomRotation(15),              # Rotação aleatória ±15 graus
+    transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),  # Deslocamento aleatório
+    transforms.RandomHorizontalFlip(p=0.5),     # Espelhar horizontalmente 50% das vezes
+    transforms.ColorJitter(brightness=0.3, contrast=0.3),  # Variação de brilho e contraste
+    transforms.ToTensor(),
+    transforms.Normalize(mean=(0,), std=(1,)),
+    transforms.RandomErasing(p=0.3, scale=(0.02, 0.1))  # Simula oclusões (objetos na frente)
+])
 
-train_data = torchvision.datasets.ImageFolder(train_dir, transform=transform)
-test_data = torchvision.datasets.ImageFolder(test_dir, transform=transform)
+# Transformação para validação/teste (SEM augmentation - dados originais)
+transform_val = transforms.Compose([
+    transforms.Grayscale(),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=(0,), std=(1,))
+])
+
+# Dataset de treino com augmentation
+train_data = torchvision.datasets.ImageFolder(train_dir, transform=transform_train)
+# Dataset de validação SEM augmentation (para avaliar corretamente)
+train_data_val = torchvision.datasets.ImageFolder(train_dir, transform=transform_val)
+test_data = torchvision.datasets.ImageFolder(test_dir, transform=transform_val)
 
 valid_size = 0.2
 batch_size = 32
@@ -36,15 +54,14 @@ train_new_idx, valid_idx = indices_train[split_tv:],indices_train[:split_tv]
 train_sampler = SubsetRandomSampler(train_new_idx)
 valid_sampler = SubsetRandomSampler(valid_idx)
 
-# On Windows the 'spawn' start method is used by default which requires
-# that the main module be import-safe. We'll create DataLoaders inside main()
-# and default to 0 workers on Windows to avoid bootstrapping errors.
 classes = ('noface','face')
 
 
 def evaluate(model, loader, criterion, device):
     model.eval()
     running_loss = 0.0
+    correct = 0
+    total = 0
     n_batches = 0
     with torch.no_grad():
         for data, target in loader:
@@ -53,59 +70,104 @@ def evaluate(model, loader, criterion, device):
             loss = criterion(output, target)
             running_loss += loss.item()
             n_batches += 1
+            
+            # Calcular acurácia
+            _, predicted = torch.max(output.data, 1)
+            total += target.size(0)
+            correct += (predicted == target).sum().item()
+    
     avg_loss = running_loss / n_batches if n_batches > 0 else float('inf')
+    accuracy = 100 * correct / total if total > 0 else 0
     model.train()
-    return avg_loss
+    return avg_loss, accuracy
+
 
 def build_dataloaders(batch_size=batch_size, num_workers=None):
     """Return (train_loader, valid_loader, test_loader).
-
-    This function is safe to import from other modules (it doesn't run
-    training) and can be used by `test.py` to obtain the test loader.
+    
+    Train loader usa data augmentation, valid/test não.
     """
     if num_workers is None:
         num_workers = 0 if sys.platform.startswith('win') else 1
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, sampler=train_sampler, num_workers=num_workers)
-    valid_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, sampler=valid_sampler, num_workers=num_workers)
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    # Train com augmentation
+    train_loader = torch.utils.data.DataLoader(
+        train_data, 
+        batch_size=batch_size, 
+        sampler=train_sampler, 
+        num_workers=num_workers
+    )
+    
+    # Validation SEM augmentation
+    valid_loader = torch.utils.data.DataLoader(
+        train_data_val, 
+        batch_size=batch_size, 
+        sampler=valid_sampler, 
+        num_workers=num_workers
+    )
+    
+    # Test SEM augmentation
+    test_loader = torch.utils.data.DataLoader(
+        test_data, 
+        batch_size=batch_size, 
+        shuffle=True, 
+        num_workers=num_workers
+    )
+    
     return train_loader, valid_loader, test_loader
 
 
 def main():
-    # aqui é para passagem de argumento, maioria já tem default ai n precisa passar nd, botei 2 epocas pq tinha visto num dos tutoriais q uso isso, mas da pra brincar
-    parser = argparse.ArgumentParser(description='Training with validation and early stopping')
+    parser = argparse.ArgumentParser(description='Training with data augmentation and improved hyperparameters')
     parser.add_argument('--batch-size', type=int, default=batch_size)
-    parser.add_argument('--epochs', type=int, default=2)
-    parser.add_argument('--lr', type=float, default=0.01)
+    parser.add_argument('--epochs', type=int, default=30, help='More epochs for better learning with augmentation')
+    parser.add_argument('--lr', type=float, default=0.001, help='Lower learning rate for stability')
     parser.add_argument('--num-workers', type=int, default=(0 if sys.platform.startswith('win') else 1))
-    parser.add_argument('--patience', type=int, default=3, help='Early stopping patience in epochs')
-    parser.add_argument('--save-path', type=str, default='best_model.pth')
+    parser.add_argument('--patience', type=int, default=7, help='Early stopping patience')
+    parser.add_argument('--save-path', type=str, default='best_model_augmented.pth')
     args = parser.parse_args()
 
-    # aq frescurinha pra roda com gpu pode ate apagar
-    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     device = torch.device('cpu')
 
-    # Create DataLoaders inside main so worker spawning happens safely
-    train_loader, valid_loader, test_loader = build_dataloaders(batch_size=args.batch_size, num_workers=args.num_workers)
+    # Create DataLoaders
+    train_loader, valid_loader, test_loader = build_dataloaders(
+        batch_size=args.batch_size, 
+        num_workers=args.num_workers
+    )
 
-    # aq começa realemnte o q deve se feito
+    # Initialize model
     net = Net().to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr)
+    
+    # Optimizer com momentum e weight decay para melhor generalização
+    optimizer = optim.SGD(
+        net.parameters(), 
+        lr=args.lr, 
+        momentum=0.9, 
+        weight_decay=1e-4
+    )
+    
+    # Learning rate scheduler - reduz LR quando validação para de melhorar
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
+    
     n_epochs = args.epochs
-
     best_val = float('inf')
     epochs_no_improve = 0
 
-    #esse é o for pra ser preenchido
+    print(f'Starting training with data augmentation')
+    print(f'Training samples: {len(train_new_idx)}')
+    print(f'Validation samples: {len(valid_idx)}')
+    print(f'Batch size: {args.batch_size}')
+    print(f'Learning rate: {args.lr}')
+    print(f'Max epochs: {n_epochs}')
+    print('-' * 60)
 
     for epoch in range(1, n_epochs + 1):
         t0 = time.time()
         net.train()
         running_loss = 0.0
         i = 0
+        
         for data, target in train_loader:
             data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
@@ -115,34 +177,46 @@ def main():
             optimizer.step()
             i += 1
             running_loss += loss.item()
-            if i % 200 == 199:    # print every 200 mini-batches
+            
+            if i % 200 == 199:
                 print(f'[{epoch}, {i}] train loss (recent): {running_loss / 200:.6f}')
                 running_loss = 0.0
 
-        val_loss = evaluate(net, valid_loader, criterion, device)
-        print(f'Epoch {epoch} finished in {time.time()-t0:.1f}s - validation loss: {val_loss:.6f}')
+        # Evaluate on validation set
+        val_loss, val_acc = evaluate(net, valid_loader, criterion, device)
+        
+        # Adjust learning rate based on validation loss
+        scheduler.step(val_loss)
+        
+        elapsed = time.time() - t0
+        print(f'Epoch {epoch}/{n_epochs} finished in {elapsed:.1f}s')
+        print(f'  Validation loss: {val_loss:.6f}')
+        print(f'  Validation accuracy: {val_acc:.2f}%')
 
-        # early stopping / checkpoint <- logica de parar no melhor valor
+        # Early stopping and checkpoint
         if val_loss < best_val:
             best_val = val_loss
             epochs_no_improve = 0
             torch.save(net.state_dict(), args.save_path)
-            print(f'Validation improved; saved model to {args.save_path}')
+            print(f'  ✓ Validation improved! Saved model to {args.save_path}')
         else:
             epochs_no_improve += 1
-            print(f'No improvement for {epochs_no_improve} epoch(s)')
+            print(f'  No improvement for {epochs_no_improve} epoch(s)')
 
         if epochs_no_improve >= args.patience:
-            print(f'Early stopping triggered (no improvement in {args.patience} epochs).')
+            print(f'\nEarly stopping triggered (no improvement in {args.patience} epochs).')
             break
+        
+        print('-' * 60)
 
-    print('Finished Training')
+    print('\n' + '=' * 60)
+    print('Finished Training!')
+    print(f'Best validation loss: {best_val:.6f}')
+    print(f'Model saved to: {args.save_path}')
+    print('=' * 60)
 
 
 if __name__ == '__main__':
-    # Required on Windows when using multiprocessing in frozen/executable apps
-    #tava dando erro de freeze nessa bosta, ai tive q por isso ae
     multiprocessing.freeze_support()
     main()
-
 
