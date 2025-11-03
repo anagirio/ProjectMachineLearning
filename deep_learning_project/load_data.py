@@ -11,6 +11,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 import multiprocessing
 import sys
 from net import Net
+import fix_images 
 
 train_dir = './train_images'
 test_dir = './test_images'
