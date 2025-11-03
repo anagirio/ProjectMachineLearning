@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import torchvision.transforms as transforms
 from net import Net
+import fix_images  
 
 class FaceDetector:
     def __init__(self, model_path='best_model.pth', confidence_threshold=0.7):
