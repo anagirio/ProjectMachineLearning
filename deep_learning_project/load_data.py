@@ -67,12 +67,16 @@ def evaluate(model, loader, criterion, device):
         for data, target in loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            loss = criterion(output, target)
+            # output: (N,1) -> make it (N,) to match target shape for BCELoss
+            output_flat = output.view(-1)
+            # BCELoss expects float targets
+            loss = criterion(output_flat, target.float())
             running_loss += loss.item()
             n_batches += 1
             
             # Calcular acurácia
-            _, predicted = torch.max(output.data, 1)
+            # Predição por limiar (0.5)
+            predicted = (output.data >= 0.5).long().view(-1)
             total += target.size(0)
             correct += (predicted == target).sum().item()
     
@@ -114,13 +118,16 @@ def build_dataloaders(batch_size=batch_size, num_workers=None):
         num_workers=num_workers
     )
     
+    # images, labels = next(iter(train_loader))
+    # print(f"Shape da imagem: {images.shape}")
+
     return train_loader, valid_loader, test_loader
 
 
 def main():
     parser = argparse.ArgumentParser(description='Training with data augmentation and improved hyperparameters')
     parser.add_argument('--batch-size', type=int, default=batch_size)
-    parser.add_argument('--epochs', type=int, default=30, help='More epochs for better learning with augmentation')
+    parser.add_argument('--epochs', type=int, default=2, help='More epochs for better learning with augmentation')
     parser.add_argument('--lr', type=float, default=0.001, help='Lower learning rate for stability')
     parser.add_argument('--num-workers', type=int, default=(0 if sys.platform.startswith('win') else 1))
     parser.add_argument('--patience', type=int, default=7, help='Early stopping patience')
@@ -137,7 +144,7 @@ def main():
 
     # Initialize model
     net = Net().to(device)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCELoss()
     
     # Optimizer com momentum e weight decay para melhor generalização
     optimizer = optim.SGD(
@@ -172,7 +179,9 @@ def main():
             data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
             output = net(data)
-            loss = criterion(output, target)
+            # Flatten output to (N,) and convert target to float for BCELoss
+            output_flat = output.view(-1)
+            loss = criterion(output_flat, target.float())
             loss.backward()
             optimizer.step()
             i += 1
