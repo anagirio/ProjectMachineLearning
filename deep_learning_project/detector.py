@@ -91,9 +91,18 @@ class FaceDetector:
         # Predição
         with torch.no_grad():
             output = self.net(window_tensor)
-            probabilities = F.softmax(output, dim=1)
-            # Retorna probabilidade da classe 'face' (índice 1)
-            confidence = probabilities[0][1].item()
+            # Handle two possible output formats:
+            # - model returns a single probability per sample (N,1) with sigmoid applied
+            # - model returns logits for two classes (N,2) and needs softmax
+            if output.dim() == 2 and output.size(1) == 1:
+                # output is probability (after sigmoid) or a single logit
+                # if it's a logit you might want to apply sigmoid, but in this code
+                # Net currently applies sigmoid, so we treat it as probability.
+                confidence = output.view(-1)[0].item()
+            else:
+                probabilities = F.softmax(output, dim=1)
+                # Return probability of 'face' class (index 1)
+                confidence = probabilities[0][1].item()
         
         return confidence
 

@@ -1,20 +1,20 @@
 """
-Configuração para tolerar imagens truncadas ou corrompidas.
+Configuration to tolerate truncated or corrupted images.
 
-Este módulo configura o PIL (Python Imaging Library) para tentar
-carregar imagens mesmo que estejam incompletas ou parcialmente corrompidas.
+This module configures the PIL (Python Imaging Library) to attempt
+to load images even if they are incomplete or partially corrupted.
 
-Para usar, simplesmente importe este módulo no início de qualquer script
-que trabalhe com imagens:
+To use, simply import this module at the top of any script
+that works with images::
 
     import fix_images
 
-Isso deve ser feito ANTES de qualquer operação de carregamento de imagens.
+This should be done BEFORE any image-loading operations.
 """
 
 from PIL import ImageFile
 
-# Permite carregar imagens truncadas (incompletas)
+# Allow loading truncated (incomplete) images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 print("PIL configured to load truncated images")

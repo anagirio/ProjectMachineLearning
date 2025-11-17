@@ -7,56 +7,56 @@ import fix_images
 
 def draw_boxes(image_path, detections, output_path):
     """
-    Desenha bounding boxes na imagem.
-    
+    Draw bounding boxes on the image.
+
     Args:
-        image_path: caminho da imagem original
-        detections: lista de [x, y, w, h, confidence]
-        output_path: caminho para salvar imagem com detecções
+        image_path: path to the original image
+        detections: list of [x, y, w, h, confidence]
+        output_path: path to save the image with detections
     """
     image = Image.open(image_path).convert('RGB')
     draw = ImageDraw.Draw(image)
     
-    # Tenta carregar uma fonte, senão usa a padrão
+    # Try to load a font, otherwise fall back to the default
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
     except:
         font = ImageFont.load_default()
     
-    # Desenha cada detecção
+    # Draw each detection
     for det in detections:
         x, y, w, h, conf = det
         
-        # Desenha retângulo
+        # Draw rectangle
         draw.rectangle([x, y, x + w, y + h], outline='green', width=3)
         
-        # Desenha label com confiança
+        # Draw confidence label
         label = f'Face {conf:.2f}'
         
-        # Fundo do texto
+        # Background for the text
         bbox = draw.textbbox((x, y - 20), label, font=font)
         draw.rectangle(bbox, fill='green')
         draw.text((x, y - 20), label, fill='white', font=font)
     
-    # Salva imagem
+    # Save image
     image.save(output_path)
     print(f'Saved detection result to {output_path}')
 
 
-def process_images(test_dir, output_dir, model_path='best_model.pth', 
+def process_images(test_dir, output_dir, model_path='best_model_augmented.pth', 
                    confidence_threshold=0.7, iou_threshold=0.3,
                    window_size=64, stride=16):
     """
-    Processa todas as imagens de um diretório.
-    
+    Process all images in a directory.
+
     Args:
-        test_dir: diretório com imagens de teste
-        output_dir: diretório para salvar resultados
-        model_path: caminho do modelo treinado
-        confidence_threshold: threshold de confiança
-        iou_threshold: threshold de IoU para NMS
-        window_size: tamanho da janela de detecção
-        stride: passo do sliding window
+        test_dir: directory with test images
+        output_dir: directory to save results
+        model_path: path to the trained model
+        confidence_threshold: confidence threshold
+        iou_threshold: IoU threshold for NMS
+        window_size: detection window size
+        stride: sliding window step
     """
     # Cria diretório de saída
     os.makedirs(output_dir, exist_ok=True)
@@ -66,7 +66,7 @@ def process_images(test_dir, output_dir, model_path='best_model.pth',
     detector = FaceDetector(model_path, confidence_threshold)
     print('Model loaded successfully!')
     
-    # Processa todas as subpastas
+    # Process all subfolders
     total_images = 0
     total_detections = 0
     
@@ -78,18 +78,18 @@ def process_images(test_dir, output_dir, model_path='best_model.pth',
                 print(f'\nProcessing: {filename}')
                 t0 = time.time()
                 
-                # Detecta faces
+                # Detect faces
                 detections = detector.detect(image_path, window_size=window_size, stride=stride)
                 print(f'  Found {len(detections)} raw detections')
                 
-                # Aplica NMS
+                # Apply NMS
                 if len(detections) > 0:
                     detections_nms = non_max_suppression(detections, iou_threshold)
                     print(f'  After NMS: {len(detections_nms)} detections')
                 else:
                     detections_nms = []
                 
-                # Desenha boxes e salva
+                # Draw boxes and save
                 output_filename = f'detected_{filename}'
                 output_path = os.path.join(output_dir, output_filename)
                 draw_boxes(image_path, detections_nms, output_path)
@@ -101,7 +101,7 @@ def process_images(test_dir, output_dir, model_path='best_model.pth',
                 total_detections += len(detections_nms)
     
     print(f'\n' + '='*60)
-    print(f'Summary:')
+    print('Summary:')
     print(f'  Total images processed: {total_images}')
     print(f'  Total faces detected: {total_detections}')
     print(f'  Average detections per image: {total_detections/total_images:.2f}' if total_images > 0 else 0)
@@ -128,12 +128,12 @@ def main():
     
     args = parser.parse_args()
     
-    # Verifica se diretório de teste existe
+    # Check if test directory exists
     if not os.path.exists(args.test_dir):
         print(f'Error: Test directory "{args.test_dir}" not found!')
         return
     
-    # Verifica se modelo existe
+    # Check if model file exists
     if not os.path.exists(args.model_path):
         print(f'Error: Model file "{args.model_path}" not found!')
         print('Please train the model first using load_data.py')

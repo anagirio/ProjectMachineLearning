@@ -1,70 +1,70 @@
-# Detector de Faces com NMS
+# Face Detector with NMS
 
-Arquivos criados para adicionar detecção de faces com Non-Maximum Suppression ao seu projeto.
+Files added to provide face detection with Non-Maximum Suppression (NMS) for your project.
 
-## Arquivos Criados
+## Files Added
 
-1. **fix_images.py** - Configuração para tolerar imagens truncadas/corrompidas
-   - É importado automaticamente pelos outros arquivos
+1. **fix_images.py** - Configuration to tolerate truncated/corrupted images
+   - Imported automatically by the other scripts
 
-2. **detector.py** - Implementa:
-   - Classe `FaceDetector`: detector com sliding window em múltiplas escalas
-   - Função `non_max_suppression`: elimina detecções redundantes usando IoU
+2. **detector.py** - Implements:
+   - `FaceDetector` class: sliding-window detector at multiple scales
+   - `non_max_suppression` function: removes redundant detections using IoU
 
-3. **detect_faces.py** - Script principal para:
-   - Processar imagens do diretório de teste
-   - Aplicar detecção + NMS
-   - Salvar imagens com bounding boxes desenhadas
-   - Suporta formatos: .png, .jpg, .jpeg, .bmp, .gif, .pgm
+3. **detect_faces.py** - Main script to:
+   - Process images from a test directory
+   - Apply detection + NMS
+   - Save images with drawn bounding boxes
+   - Supports formats: .png, .jpg, .jpeg, .bmp, .gif, .pgm
 
-4. **Arquivos _fixed.py** - Versões corrigidas dos arquivos originais:
-   - `load_data_fixed.py` - versão do load_data.py com correção de imagens
-   - `test_fixed.py` - versão do test.py com correção de imagens
+4. **_fixed.py files** - Fixed versions of some original scripts:
+   - `load_data_fixed.py` - copy of `load_data.py` that ensures images are handled robustly
+   - `test_fixed.py` - copy of `test.py` that includes the fix for truncated images
 
-## IMPORTANTE: Correção de Imagens Truncadas
+## IMPORTANT: Fix for Truncated Images
 
-Se você encontrar o erro "OSError: image file is truncated":
+If you see the error "OSError: image file is truncated":
 
-**Solução Rápida:** Use os arquivos _fixed.py que já têm a correção:
+**Quick fix:** Use the `_fixed.py` scripts which already include the correction::
 ```bash
 python load_data_fixed.py --epochs 10
 python test_fixed.py
 ```
 
-**OU** adicione esta linha no início dos seus arquivos originais (load_data.py, test.py):
+**OR** add this import at the top of your original scripts (`load_data.py`, `test.py`):
 ```python
-import fix_images  # Logo após os outros imports
+import fix_images  # place after other imports
 ```
 
-## Como Usar
+## How to Use
 
-### 1. Certifique-se de ter o modelo treinado
+### 1. Make sure you have a trained model
 
-**Usando o arquivo corrigido (recomendado):**
+**Using the fixed loader (recommended):**
 ```bash
 python load_data_fixed.py --epochs 10
 ```
 
-**OU** use o arquivo original (se já adicionou `import fix_images`):
+**OR** use the original loader (if you added `import fix_images`):
 ```bash
 python load_data.py --epochs 10
 ```
 
-Isso vai gerar o arquivo `best_model.pth`
+This will produce the file `best_model.pth`.
 
-### 2. Execute a detecção
+### 2. Run detection
 
-**Para imagens 36x36 pixels (como .pgm do projeto):**
+**For 36x36 images (project .pgm files):**
 ```bash
 python detect_faces.py --window-size 36 --stride 4 --confidence 0.5
 ```
 
-**Para imagens maiores (tamanho padrão):**
+**For larger images (default settings):**
 ```bash
 python detect_faces.py
 ```
 
-### 3. Parâmetros opcionais
+### 3. Optional parameters
 ```bash
 python detect_faces.py \
     --test-dir ./test_images \
@@ -76,58 +76,58 @@ python detect_faces.py \
     --stride 4
 ```
 
-## Parâmetros Explicados
+## Parameters Explained
 
-- `--test-dir`: Diretório com as imagens para detectar faces (padrão: ./test_images)
-- `--output-dir`: Onde salvar as imagens com detecções (padrão: ./detection_results)
-- `--model-path`: Caminho do modelo treinado (padrão: best_model.pth)
-- `--confidence`: Threshold de confiança (0-1). Valores maiores = menos detecções, mais precisas
-- `--iou`: Threshold de IoU para NMS (0-1). Valores menores = mais agressivo na eliminação de duplicatas
-- `--window-size`: Tamanho da janela de detecção em pixels (IMPORTANTE: deve corresponder ao tamanho das faces nas suas imagens)
-- `--stride`: Passo do sliding window (menor = mais detecções, mais lento)
+- `--test-dir`: Directory with images to run detection on (default: `./test_images`)
+- `--output-dir`: Where to save images with detections (default: `./detection_results`)
+- `--model-path`: Path to the trained model (default: `best_model.pth`)
+- `--confidence`: Confidence threshold (0-1). Higher values → fewer, more precise detections
+- `--iou`: IoU threshold for NMS (0-1). Lower values → more aggressive duplicate removal
+- `--window-size`: Detection window size in pixels (IMPORTANT: should match approximate face size in your images)
+- `--stride`: Sliding window step (smaller → more detections, slower)
 
-## ATENÇÃO: Tamanho da Janela (window-size)
+## WARNING: Window Size
 
-O parâmetro `--window-size` é **CRÍTICO** e deve corresponder ao tamanho aproximado das faces nas suas imagens:
+The `--window-size` parameter is CRITICAL and should match the approximate face size in your images:
 
-- **Imagens 36x36 pixels** (como .pgm do projeto): use `--window-size 36`
-- **Imagens maiores com faces pequenas**: use `--window-size 64` ou `--window-size 48`
-- **Imagens grandes com faces grandes**: use `--window-size 128` ou maior
+- **36x36 images** (project .pgm files): use `--window-size 36`
+- **Larger images with small faces**: use `--window-size 48` or `--window-size 64`
+- **Large images with large faces**: use `--window-size 128` or larger
 
-**Se window-size for maior que a imagem, NÃO DETECTARÁ NADA!**
+If `--window-size` is larger than the image, nothing will be detected.
 
-## Como Funciona
+## How It Works
 
 ### Sliding Window
-O detector percorre cada imagem em múltiplas escalas (0.5x, 0.75x, 1.0x, 1.25x, 1.5x) com janelas de tamanho fixo:
-- Isso permite detectar faces de diferentes tamanhos
-- Cada janela é classificada pela sua rede neural
-- Janelas com confiança > threshold são salvas como detecções
+The detector scans each image at multiple scales (0.5x, 0.75x, 1.0x, 1.25x, 1.5x) with a fixed window size:
+- This allows detection of faces at different sizes
+- Each window is classified by the neural network
+- Windows with confidence > threshold are saved as detections
 
 ### Non-Maximum Suppression (NMS)
-Elimina bounding boxes redundantes:
-1. Ordena todas as detecções por confiança (maior primeiro)
-2. Para cada detecção:
-   - Mantém a de maior confiança
-   - Remove todas as outras que têm IoU > threshold com ela
-3. Resultado: apenas as melhores detecções não-sobrepostas
+Removes redundant bounding boxes:
+1. Sort all detections by confidence (highest first)
+2. For each detection:
+   - Keep the highest-confidence one
+   - Remove all others that have IoU > threshold with it
+3. Result: only the best non-overlapping detections remain
 
 ### IoU (Intersection over Union)
-Métrica que mede sobreposição entre duas bounding boxes:
-- IoU = Área de Interseção / Área de União
-- IoU = 0: boxes não se tocam
-- IoU = 1: boxes idênticas
+Metric that measures overlap between two bounding boxes:
+- IoU = Area of Intersection / Area of Union
+- IoU = 0: boxes do not overlap
+- IoU = 1: boxes are identical
 
-## Saída Esperada
+## Expected Output
 
-O script vai:
-1. Processar cada imagem do `test_dir`
-2. Detectar faces usando sliding window
-3. Aplicar NMS para eliminar duplicatas
-4. Salvar imagens com boxes verdes e labels de confiança
-5. Imprimir resumo
+The script will:
+1. Process each image in `test_dir`
+2. Detect faces using sliding window
+3. Apply NMS to remove duplicates
+4. Save images with green boxes and confidence labels
+5. Print a summary
 
-**Exemplo de saída real:**
+**Example output:**
 ```
 Loading model from best_model.pth...
 Model loaded successfully!
@@ -147,128 +147,128 @@ Summary:
   Results saved to: ./detection_results
 ```
 
-## Ajuste Fino
+## Fine Tuning
 
-### Se tiver **muitas detecções falsas** (falsos positivos):
+### If you have **many false positives**:
 ```bash
-# Aumentar confiança mínima
+# Increase minimum confidence
 python detect_faces.py --window-size 36 --confidence 0.7
 
-# NMS mais agressivo
+# More aggressive NMS
 python detect_faces.py --window-size 36 --iou 0.2
 
-# Ambos
+# Both
 python detect_faces.py --window-size 36 --confidence 0.7 --iou 0.2
 ```
 
-### Se **não detectar faces** (ou muito poucas):
+### If **few or no faces are detected**:
 ```bash
-# Diminuir confiança
+# Lower confidence
 python detect_faces.py --window-size 36 --confidence 0.3
 
-# Stride menor (mais detecções)
+# Smaller stride (more detections)
 python detect_faces.py --window-size 36 --stride 2 --confidence 0.4
 
-# Verificar tamanho da janela
-file test_images/1/* | head -1  # Ver tamanho real das imagens
-python detect_faces.py --window-size [TAMANHO_CORRETO]
+# Check window size
+file test_images/1/* | head -1  # See the actual image size
+python detect_faces.py --window-size [CORRECT_SIZE]
 ```
 
-### Se estiver **muito lento**:
+### If detection is **very slow**:
 ```bash
-# Aumentar stride
+# Increase stride
 python detect_faces.py --window-size 36 --stride 8
 
-# Reduzir escalas (edite detector.py, linha: scales=[0.5, 0.75, 1.0, 1.25, 1.5])
-# Mude para: scales=[1.0]
+# Reduce scales (edit detector.py, line: scales=[0.5, 0.75, 1.0, 1.25, 1.5])
+# Change to: scales=[1.0]
 ```
 
-## Verificação de Imagens
+## Inspecting Images
 
-Para ver o tamanho das suas imagens:
+To see the size of your images:
 ```bash
 file test_images/0/* | head -3
 file test_images/1/* | head -3
 ```
 
-Ajuste o `--window-size` de acordo!
+Adjust `--window-size` accordingly.
 
-## Estrutura de Diretórios
+## Directory Structure
 
 ```
-projeto/
-├── fix_images.py              ⬅️ OBRIGATÓRIO
-├── net.py                     (seu arquivo original)
-├── load_data.py               (seu arquivo original)
-├── test.py                    (seu arquivo original)
-├── detector.py                ⬅️ NOVO
-├── detect_faces.py            ⬅️ NOVO
-├── load_data_fixed.py         ⬅️ NOVO (opcional)
-├── test_fixed.py              ⬅️ NOVO (opcional)
-├── best_model.pth             (gerado pelo treinamento)
+project/
+├── fix_images.py              ⬅️ REQUIRED
+├── net.py                     (your original file)
+├── load_data.py               (your original file)
+├── test.py                    (your original file)
+├── detector.py                ⬅️ NEW
+├── detect_faces.py            ⬅️ NEW
+├── load_data_fixed.py         ⬅️ NEW (optional)
+├── test_fixed.py              ⬅️ NEW (optional)
+├── best_model.pth             (generated by training)
 ├── train_images/
-│   ├── 0/                     (ou noface/)
-│   └── 1/                     (ou face/)
+│   ├── 0/                     (or noface/)
+│   └── 1/                     (or face/)
 ├── test_images/
 │   ├── 0/
 │   └── 1/
-└── detection_results/         (gerado automaticamente)
+└── detection_results/         (generated automatically)
     ├── detected_image1.pgm
     ├── detected_image2.pgm
     └── ...
 ```
 
-## Integração com Código Existente
+## Integration with Existing Code
 
-Os novos arquivos funcionam com:
-- `net.py`: sua arquitetura de rede
-- `load_data.py`: usa o modelo treinado por ele
-- `test.py`: pode continuar usando para avaliar acurácia
+The new files work with:
+- `net.py`: your network architecture
+- `load_data.py`: used to train the model
+- `test.py`: can still be used for evaluation
 
-Não é necessário modificar os arquivos antigos (a menos que queira adicionar `import fix_images`)!
+You don't need to modify the original files (unless you want to add `import fix_images`).
 
-## Comandos Rápidos
+## Quick Commands
 
 ```bash
-# Treinar modelo
+# Train model
 python load_data_fixed.py --epochs 10
 
-# Testar acurácia
+# Test accuracy
 python test_fixed.py
 
-# Detectar faces (imagens 36x36)
+# Detect faces (36x36 images)
 python detect_faces.py --window-size 36 --stride 4 --confidence 0.5
 
-# Detectar com mais sensibilidade
+# Detect with higher sensitivity
 python detect_faces.py --window-size 36 --stride 4 --confidence 0.3
 
-# Detectar com mais precisão
+# Detect with higher precision
 python detect_faces.py --window-size 36 --stride 4 --confidence 0.7
 
-# Ver ajuda completa
+# Show full help
 python detect_faces.py --help
 ```
 
 ## Troubleshooting
 
-**Erro: "No module named 'fix_images'"**
-- Certifique-se que fix_images.py está na mesma pasta
+**Error: "No module named 'fix_images'"**
+- Make sure `fix_images.py` is in the same folder
 
-**Erro: "OSError: image file is truncated"**
-- Use load_data_fixed.py ou adicione `import fix_images`
+**Error: "OSError: image file is truncated"**
+- Use `load_data_fixed.py` or add `import fix_images`
 
-**Erro: "Total faces detected: 0"**
-- Verifique o tamanho das imagens com `file test_images/1/* | head -1`
-- Ajuste `--window-size` para o tamanho correto
-- Tente `--confidence 0.3` para threshold mais baixo
+**Error: "Total faces detected: 0"**
+- Check image size with `file test_images/1/* | head -1`
+- Adjust `--window-size` to the correct size
+- Try `--confidence 0.3` for a lower threshold
 
-**Detecção muito lenta**
-- Aumente `--stride` (ex: 8 ou 16)
-- Considere usar menos escalas (edite detector.py)
+**Detection is too slow**
+- Increase `--stride` (e.g., 8 or 16)
+- Consider using fewer scales (edit `detector.py`)
 
-**Imagens de saída não aparecem**
-- Verifique a pasta `detection_results/`
-- Apenas imagens COM detecções são salvas
+**No output images**
+- Check the `detection_results/` folder
+- Only images WITH detections are saved
 
 ### Participants:
 - Ana Luisa Girio
