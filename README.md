@@ -40,8 +40,8 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu12
 
 ### How to execute
 
-python .\load_data.py
-python .\test.py
+python ./load_data.py
+python ./test.py
 
 ### Participants:
 
