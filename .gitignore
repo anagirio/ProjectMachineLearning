@@ -1,0 +1,7 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+tempCodeRunnerFile.py
+test.jpg
+detected_test.jpg
