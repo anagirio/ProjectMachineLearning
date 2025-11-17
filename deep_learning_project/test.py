@@ -6,12 +6,12 @@ import os
 
 def test(model_path='best_model_augmented.pth', batch_size=32, num_workers=0):
     """
-    Testa o modelo treinado com data augmentation.
-    
+    Test the trained model that used data augmentation during training.
+
     Args:
-        model_path: caminho do modelo (best_model_augmented.pth)
-        batch_size: tamanho do batch
-        num_workers: número de workers para dataloader
+        model_path: path to the model (best_model_augmented.pth)
+        batch_size: batch size
+        num_workers: number of workers for the dataloader
     """
     print(f'Loading test data...')
     train_loader, valid_loader, test_loader = build_dataloaders(batch_size=batch_size, num_workers=num_workers)
@@ -35,7 +35,7 @@ def test(model_path='best_model_augmented.pth', batch_size=32, num_workers=0):
     correct = 0
     total = 0
     
-    # Contadores por classe
+    # Counters per class
     class_correct = [0, 0]  # [noface, face]
     class_total = [0, 0]
     
@@ -44,16 +44,20 @@ def test(model_path='best_model_augmented.pth', batch_size=32, num_workers=0):
         for images, labels in test_loader:
             images, labels = images.to(device), labels.to(device)
             outputs = net(images)
-            _, predicted = torch.max(outputs.data, 1)
-            
+            # Model output is (N,1) with sigmoid
+            output_flat = outputs.view(-1)
+            predicted = (output_flat >= 0.5).long()
+
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-            
-            # Acurácia por classe
+
+            # Per-class accuracy — convert labels/prediction to int when indexing lists
             for label, prediction in zip(labels, predicted):
-                class_total[label] += 1
-                if label == prediction:
-                    class_correct[label] += 1
+                li = int(label.item()) if hasattr(label, 'item') else int(label)
+                pi = int(prediction.item()) if hasattr(prediction, 'item') else int(prediction)
+                class_total[li] += 1
+                if li == pi:
+                    class_correct[li] += 1
 
     accuracy = 100 * correct / total if total > 0 else 0
     

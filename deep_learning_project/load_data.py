@@ -16,29 +16,29 @@ from net import Net
 train_dir = './train_images'
 test_dir = './test_images'
 
-# TRANSFORMAÇÕES COM DATA AUGMENTATION PARA TREINO
-# Essas transformações aumentam artificialmente a variedade dos dados
+# TRANSFORMATIONS WITH DATA AUGMENTATION FOR TRAINING
+# These transformations artificially increase the variability of the data
 transform_train = transforms.Compose([
     transforms.Grayscale(),
-    transforms.RandomRotation(15),              # Rotação aleatória ±15 graus
-    transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),  # Deslocamento aleatório
-    transforms.RandomHorizontalFlip(p=0.5),     # Espelhar horizontalmente 50% das vezes
-    transforms.ColorJitter(brightness=0.3, contrast=0.3),  # Variação de brilho e contraste
+    transforms.RandomRotation(15),              # Random rotation ±15 degrees
+    transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),  # Random translation
+    transforms.RandomHorizontalFlip(p=0.5),     # Horizontal flip 50% of the time
+    transforms.ColorJitter(brightness=0.3, contrast=0.3),  # Brightness/contrast jitter
     transforms.ToTensor(),
     transforms.Normalize(mean=(0,), std=(1,)),
-    transforms.RandomErasing(p=0.3, scale=(0.02, 0.1))  # Simula oclusões (objetos na frente)
+    transforms.RandomErasing(p=0.3, scale=(0.02, 0.1))  # Simulate occlusions (objects in front)
 ])
 
-# Transformação para validação/teste (SEM augmentation - dados originais)
+# Transformation for validation/test (WITHOUT augmentation - original data)
 transform_val = transforms.Compose([
     transforms.Grayscale(),
     transforms.ToTensor(),
     transforms.Normalize(mean=(0,), std=(1,))
 ])
 
-# Dataset de treino com augmentation
+# Training dataset with augmentation
 train_data = torchvision.datasets.ImageFolder(train_dir, transform=transform_train)
-# Dataset de validação SEM augmentation (para avaliar corretamente)
+# Validation dataset WITHOUT augmentation (for proper evaluation)
 train_data_val = torchvision.datasets.ImageFolder(train_dir, transform=transform_val)
 test_data = torchvision.datasets.ImageFolder(test_dir, transform=transform_val)
 
@@ -74,8 +74,8 @@ def evaluate(model, loader, criterion, device):
             running_loss += loss.item()
             n_batches += 1
             
-            # Calcular acurácia
-            # Predição por limiar (0.5)
+            # Calculate accuracy
+            # Prediction by threshold (0.5)
             predicted = (output.data >= 0.5).long().view(-1)
             total += target.size(0)
             correct += (predicted == target).sum().item()
@@ -88,13 +88,13 @@ def evaluate(model, loader, criterion, device):
 
 def build_dataloaders(batch_size=batch_size, num_workers=None):
     """Return (train_loader, valid_loader, test_loader).
-    
-    Train loader usa data augmentation, valid/test não.
+
+    Train loader uses data augmentation; valid/test do not.
     """
     if num_workers is None:
         num_workers = 0 if sys.platform.startswith('win') else 1
 
-    # Train com augmentation
+    # Train with augmentation
     train_loader = torch.utils.data.DataLoader(
         train_data, 
         batch_size=batch_size, 
@@ -102,7 +102,7 @@ def build_dataloaders(batch_size=batch_size, num_workers=None):
         num_workers=num_workers
     )
     
-    # Validation SEM augmentation
+    # Validation WITHOUT augmentation
     valid_loader = torch.utils.data.DataLoader(
         train_data_val, 
         batch_size=batch_size, 
@@ -110,7 +110,7 @@ def build_dataloaders(batch_size=batch_size, num_workers=None):
         num_workers=num_workers
     )
     
-    # Test SEM augmentation
+    # Test WITHOUT augmentation
     test_loader = torch.utils.data.DataLoader(
         test_data, 
         batch_size=batch_size, 
@@ -119,7 +119,7 @@ def build_dataloaders(batch_size=batch_size, num_workers=None):
     )
     
     # images, labels = next(iter(train_loader))
-    # print(f"Shape da imagem: {images.shape}")
+    # print(f"Image shape: {images.shape}")
 
     return train_loader, valid_loader, test_loader
 
@@ -127,7 +127,7 @@ def build_dataloaders(batch_size=batch_size, num_workers=None):
 def main():
     parser = argparse.ArgumentParser(description='Training with data augmentation and improved hyperparameters')
     parser.add_argument('--batch-size', type=int, default=batch_size)
-    parser.add_argument('--epochs', type=int, default=2, help='More epochs for better learning with augmentation')
+    parser.add_argument('--epochs', type=int, default=5, help='More epochs for better learning with augmentation')
     parser.add_argument('--lr', type=float, default=0.001, help='Lower learning rate for stability')
     parser.add_argument('--num-workers', type=int, default=(0 if sys.platform.startswith('win') else 1))
     parser.add_argument('--patience', type=int, default=7, help='Early stopping patience')
@@ -146,7 +146,7 @@ def main():
     net = Net().to(device)
     criterion = nn.BCELoss()
     
-    # Optimizer com momentum e weight decay para melhor generalização
+    # Optimizer with momentum and weight decay for better generalization
     optimizer = optim.SGD(
         net.parameters(), 
         lr=args.lr, 
@@ -154,7 +154,7 @@ def main():
         weight_decay=1e-4
     )
     
-    # Learning rate scheduler - reduz LR quando validação para de melhorar
+    # Learning rate scheduler - reduces LR when validation stops improving
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1)
     
     n_epochs = args.epochs
