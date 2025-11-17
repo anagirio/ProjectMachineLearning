@@ -127,7 +127,7 @@ def build_dataloaders(batch_size=batch_size, num_workers=None):
 def main():
     parser = argparse.ArgumentParser(description='Training with data augmentation and improved hyperparameters')
     parser.add_argument('--batch-size', type=int, default=batch_size)
-    parser.add_argument('--epochs', type=int, default=5, help='More epochs for better learning with augmentation')
+    parser.add_argument('--epochs', type=int, default=30 , help='More epochs for better learning with augmentation')
     parser.add_argument('--lr', type=float, default=0.001, help='Lower learning rate for stability')
     parser.add_argument('--num-workers', type=int, default=(0 if sys.platform.startswith('win') else 1))
     parser.add_argument('--patience', type=int, default=7, help='Early stopping patience')
