@@ -1,52 +1,73 @@
-# (OT2) Machine Learning and Data Analytics - INSA-Lyon 
+# Face Detection with Deep Learning
 
-## Face Detection - Project Machine Learning
- 
-### Main Objective
+**Machine Learning and Data Analytics (OT2) — INSA Lyon**
 
-- implement a deep-learning face detector (convolutional neural network approach). 
+## Overview
 
-### Pytorch
+This academic group project was developed as part of the Machine Learning and Data Analytics course at INSA Lyon, France.
 
-Pytorch Official Documentation: https://pytorch.org/
+The objective was to explore face detection using a deep learning approach based on Convolutional Neural Networks (CNNs) and PyTorch.
 
-Pytorch Introduction Slides:
+The project provides an opportunity to apply machine learning concepts to a computer vision problem, including working with image data and neural network implementations.
 
-*colocar slides aqui depois*
+## Project Objective
 
-### Dependencies and Installation
+Develop a deep learning-based approach for detecting human faces in images using convolutional neural networks.
 
-Command to check python's version:
+## Technologies
 
-python --version or py --version
+- Python
+- PyTorch
+- Deep Learning
+- Convolutional Neural Networks (CNNs)
+- Computer Vision
 
-If necessary, install pip: https://packaging.python.org/en/latest/tutorials/installing-packages/
+## Getting Started
 
-If necessary, update pip with the command:
+### Prerequisites
 
-pip install --upgrade pip
+- Python
+- pip
+- PyTorch
 
-Install pytorch with the command:
+Check your Python installation:
 
-pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+```bash
+python --version
+```
 
-### Project Introduction Slides
+Install PyTorch by following the instructions for your operating system and hardware:
 
-*colocar slides aqui depois*
+https://pytorch.org/get-started/locally/
 
-### General Explanation
+### Running the Project
 
-*explicação do projeto e como foi feito após terminanmos*
+The original project documentation references the following scripts:
 
-### How to execute
+```bash
+python load_data.py
+python test.py
+```
 
-python ./load_data.py
-python ./test.py
+Run these commands separately from the directory containing the scripts.
 
-### Participants:
+**Note:** Additional configuration, dependencies, or dataset files may be required. The execution instructions have not yet been independently verified.
 
-- Ana
+## Academic Context
+
+- **Institution:** INSA Lyon, France
+- **Course:** Machine Learning and Data Analytics (OT2)
+- **Project Type:** Collaborative academic project
+- **Research Area:** Computer Vision and Deep Learning
+
+## Team Members
+
+- Ana Luisa Girio Berlingieri
 - Julia Guimarães Simão
 - Leonardo
 - Maria Isabel
-- Nicolas
+
+## References
+
+- [PyTorch Documentation](https://pytorch.org/docs/stable/index.html)
+- [PyTorch Installation Guide](https://pytorch.org/get-started/locally/)
